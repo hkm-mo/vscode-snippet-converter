@@ -99,7 +99,7 @@ const isIgnoreNewlineTag = makeMap('pre,textarea', true)
 const shouldIgnoreFirstNewline = (tag: string, html: string) =>
   tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
 
-function decodeAttr(value: string, shouldDecodeNewlines?: boolean) {
+export function decodeAttr(value: string, shouldDecodeNewlines?: boolean) {
   const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr
   return value.replace(re, match => decodingMap[match as keyof typeof decodingMap])
 }
