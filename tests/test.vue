@@ -8,8 +8,7 @@
             -->
         <div>
             <!--#snippet2a
-                prefix="my-span" 
-                alone
+                prefix="my-span"
                 placeholder-1="Test Abc"
                 -->
             <span>
@@ -33,6 +32,7 @@
         <!--/#-->
     </div>
 </template>
+
 <script>
 </script>
 

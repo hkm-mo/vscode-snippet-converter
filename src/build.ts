@@ -20,8 +20,9 @@ interface SnippetTag {
     attrs: CodeSnippetAttrs,
     deep: number,
     startTagRange: Range,
-    contentRange?: Range,
-    endTagRange?: Range
+    contentRange: Range,
+    endTagRange: Range,
+    content?: string
 }
 
 interface SectionInfo {
@@ -117,7 +118,7 @@ async function parseFile(filePath: string) {
                                         start,
                                         end
                                     }
-                                });
+                                } as SnippetTag);
                             }
                         } else if (content.startsWith("/#")) {
                             const tag = snippetTagStack.pop();
@@ -134,9 +135,7 @@ async function parseFile(filePath: string) {
                                 end
                             };
 
-                            const children = getChildrenTags(snippetTags, tag);
-
-                            buildSnippets(fileContent, tag, children);
+                            tag.content = buildSnippet(fileContent.substring(tag.contentRange.start, tag.contentRange.end), tag, snippetTags, tag.contentRange.start);
                             snippetTags.push(tag);
 
                             deep--;
@@ -155,36 +154,49 @@ async function parseFile(filePath: string) {
     }
 }
 
-function getChildrenTags(branch: SnippetTag[], currTag: SnippetTag) {
+function getChildrenTags(snippetTags: SnippetTag[], currTag: SnippetTag) {
     const children: SnippetTag[] = [];
-    for (let i = 0; i < branch.length; i++) {
-        const t = branch[i];
-        if ((currTag.contentRange && t.contentRange) &&
+    const deep = currTag.deep + 1;
+    for (let i = 0; i < snippetTags.length; i++) {
+        const t = snippetTags[i];
+        if (deep === t.deep &&
             t.contentRange.start >= currTag.contentRange.start &&
             t.contentRange.end <= currTag.contentRange.end) {
             children.push(t);
         }
     }
 
+    children.sort((a, b)=> a.startTagRange.start > b.startTagRange.start ? 1 : -1);
+
     return children;
 }
 
-function buildSnippets(fileContent: string, snippetTag: SnippetTag, innerSnippetTags: SnippetTag[]) {
-    console.log(snippetTag, innerSnippetTags.length);
-    if (snippetTag.contentRange) {
-        const snippet = fileContent.substring(snippetTag.contentRange.start, snippetTag.contentRange.end);
-        let offset = 0 - snippetTag.contentRange.start;
+function buildSnippet(snippet: string, snippetTag: SnippetTag, snippetTags: SnippetTag[], start: number) {
+    const children = getChildrenTags(snippetTags, snippetTag);
+    let _snippet = snippet;
+    let offset = start;
+    console.log(snippetTag, children.length);
 
-        if (innerSnippetTags.length) {
-            for (let i = 0; i < innerSnippetTags.length; i++) {
-                const ist = innerSnippetTags[i];
-                if (ist.attrs.alone) {
-                    //offset -= ist.startTagRange
-                }
+    if (children.length) {
+        //if (children.length === 4) console.log(children);
+        for (let i = 0; i < children.length; i++) {
+            const ist = children[i];
+            const starting = _snippet.substring(0, ist.startTagRange.start - offset);
+            const ending =  _snippet.substring(ist.endTagRange.end - offset);
+            let newSnippet: string = "";
+
+            if (ist.attrs.alone) {
+                newSnippet = starting + ending;
+            } else {
+                newSnippet = starting + ist.content + ending;
             }
+            offset += _snippet.length - newSnippet.length
+            _snippet = newSnippet;
         }
     }
-    snippetTag.contentRange?.start
+
+    console.log(_snippet);
+    return _snippet;
 }
 
 parseFile("./tests/test.vue");
