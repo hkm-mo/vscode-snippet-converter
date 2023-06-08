@@ -161,7 +161,3 @@ function buildSnippet(snippet: string, snippetTag: SnippetTag, snippetTags: Snip
 
     return _snippet;
 }
-
-parseFile("./tests/test.vue").then((snippets) => {
-    console.log(snippets);
-})
