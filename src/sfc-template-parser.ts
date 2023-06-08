@@ -78,7 +78,7 @@ function parseAttrs(html: string, accumulate: CodeSnippetAttrs = {}) {
         const attrVal = match[3];
         if (multipleValuesAttr.includes(attrName)) {
             accumulate[attrName] = typeof attrVal !== "undefined" ? attrVal.split(",") : [] as any;
-        } if (attrName.startsWith("placeholder-")) {
+        } else if (attrName.startsWith("placeholder-")) {
             if (!accumulate.placeholders)
                 accumulate.placeholders = {}
 
@@ -95,9 +95,9 @@ function parseAttrs(html: string, accumulate: CodeSnippetAttrs = {}) {
     return accumulate;
 }
 
-async function parseFile(filePath: string) {
+export async function parseFile(filePath: string) {
     try {
-        const fileContent = await fs.readFile(filePath, { encoding: "utf-8" });
+        const fileContent = (await fs.readFile(filePath, { encoding: "utf-8" })).replace(/\r/g, "");
         let deep = 0;
         const snippetTagStack: SnippetTag[] = [];
         const snippetTags: SnippetTag[] = [];
@@ -139,16 +139,12 @@ async function parseFile(filePath: string) {
                             snippetTags.push(tag);
 
                             deep--;
-                            // console.log(tag)
-                            // const sectionContent = adjustIndent(removeComments(fileContent.substring(tag.contentRange.start, tag.contentRange.end)))
-
-                            // console.log(tag.content.trim())
-                            // console.log(sectionContent)
                         }
                     }
                 }
             });
         }
+        return snippetTags;
     } catch (error) {
         console.log(error);
     }
@@ -166,7 +162,7 @@ function getChildrenTags(snippetTags: SnippetTag[], currTag: SnippetTag) {
         }
     }
 
-    children.sort((a, b)=> a.startTagRange.start > b.startTagRange.start ? 1 : -1);
+    children.sort((a, b) => a.startTagRange.start > b.startTagRange.start ? 1 : -1);
 
     return children;
 }
@@ -175,14 +171,12 @@ function buildSnippet(snippet: string, snippetTag: SnippetTag, snippetTags: Snip
     const children = getChildrenTags(snippetTags, snippetTag);
     let _snippet = snippet;
     let offset = start;
-    console.log(snippetTag, children.length);
 
     if (children.length) {
-        //if (children.length === 4) console.log(children);
         for (let i = 0; i < children.length; i++) {
             const ist = children[i];
             const starting = _snippet.substring(0, ist.startTagRange.start - offset);
-            const ending =  _snippet.substring(ist.endTagRange.end - offset);
+            const ending = _snippet.substring(ist.endTagRange.end - offset);
             let newSnippet: string = "";
 
             if (ist.attrs.alone) {
@@ -195,8 +189,9 @@ function buildSnippet(snippet: string, snippetTag: SnippetTag, snippetTags: Snip
         }
     }
 
-    console.log(_snippet);
     return _snippet;
 }
 
-parseFile("./tests/test.vue");
+parseFile("./tests/test.vue").then((snippets) => {
+    console.log(snippets);
+})
